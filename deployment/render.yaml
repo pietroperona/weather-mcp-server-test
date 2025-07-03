@@ -1,0 +1,73 @@
+# Vai nella directory deployment
+cd deployment
+
+cat > render.yaml << 'EOF'
+# Weather MCP Server - Render.com Deployment Configuration
+# Auto-generated from mcp-server-template
+
+services:
+  # Weather MCP Server MCP Server
+  - type: web
+    name: weather-mcp-server
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      # Server Configuration
+      - key: PORT
+        generateValue: true  # Render sets this automatically
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: LOG_LEVEL
+        value: INFO
+      
+      # MCP Server Settings
+      - key: MCP_SERVER_NAME
+        value: weather-mcp-server
+      - key: MCP_SERVER_VERSION
+        value: 0.1.0
+      - key: MCP_HOST
+        value: 0.0.0.0
+      
+      # API Configuration
+      - key: API_BASE_URL
+        value: https://api.example.com  # TODO: Replace with actual API URL
+      - key: API_VERSION
+        value: v1
+      - key: API_TIMEOUT
+        value: "30"
+      
+      # Authentication - Set these in Render Dashboard
+- key: API_KEY
+        sync: false  # Set manually in Render dashboard for security
+      - key: API_KEY_HEADER
+        value: X-API-Key
+# Rate Limiting Configuration
+      - key: RATE_LIMIT_REQUESTS
+        value: "100"
+      - key: RATE_LIMIT_WINDOW
+        value: "3600"
+# Health check endpoint
+    healthCheckPath: /health
+    
+    # Auto-deploy settings
+    autoDeploy: true
+    
+    # Resource limits
+    disk:
+      name: weather-mcp-server-disk
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
+
+# Optional: Database service (uncomment if needed)
+# databases:
+#   - name: weather-mcp-server-db
+#     databaseName: weather_mcp_server
+#     user: weather_mcp_server_user
+EOF
+
+# Rimuovi .gitkeep
+rm .gitkeep

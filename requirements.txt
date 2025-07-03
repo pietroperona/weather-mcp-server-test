@@ -1,0 +1,26 @@
+# Weather MCP Server - MCP Server Dependencies
+# Generated from mcp-server-template
+# Tested and working dependencies
+
+# ✅ Core MCP Framework - FastMCP (Tested)
+fastmcp>=0.1.0
+
+# ✅ HTTP Client & Async Support (Required)
+aiohttp>=3.9.0
+httpx>=0.25.0
+
+# ✅ Configuration Management (Simplified)
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+
+# ✅ Authentication & Security
+# ✅ Rate Limiting (Optional)
+asyncio-throttle>=1.0.0
+# ✅ Caching (Optional)
+# ✅ Development & Testing (Optional)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# ✅ Logging & Monitoring
+structlog>=23.0.0
