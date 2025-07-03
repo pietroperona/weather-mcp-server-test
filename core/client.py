@@ -82,6 +82,7 @@ class McpApiClient:
             )
 
         self._session: Optional[aiohttp.ClientSession] = None
+        self._session_lock = asyncio.Lock()  # Protegge l'accesso alla sessione
 
     async def __aenter__(self):
         """Async context manager entry"""
@@ -92,16 +93,19 @@ class McpApiClient:
         await self.close()
 
     async def _get_session(self) -> aiohttp.ClientSession:
-        """Get or create aiohttp session"""
-        if self._session is None or self._session.closed:
-            timeout = aiohttp.ClientTimeout(total=self.timeout)
-            self._session = aiohttp.ClientSession(timeout=timeout)
-        return self._session
+        """Get or create aiohttp session with thread safety"""
+        async with self._session_lock:  # Usa il lock per evitare race condition
+            if self._session is None or self._session.closed:
+                timeout = aiohttp.ClientTimeout(total=self.timeout)
+                self._session = aiohttp.ClientSession(timeout=timeout)
+            return self._session
 
     async def close(self):
         """Close all HTTP sessions"""
-        if self._session and not self._session.closed:
-            await self._session.close()
+        async with self._session_lock:  # Usa il lock per evitare race condition
+            if self._session and not self._session.closed:
+                await self._session.close()
+                self._session = None  # Imposta esplicitamente a None per evitare riferimenti
 
     async def _make_request(
         self,
@@ -142,10 +146,13 @@ class McpApiClient:
         # Retry logic
         max_retries = 3
         base_delay = 1.0
+        session = None
 
         for attempt in range(max_retries + 1):
             try:
-                session = await self._get_session()
+                # Ottieni una nuova sessione per ogni tentativo se la precedente è fallita
+                if session is None or session.closed:
+                    session = await self._get_session()
 
                 async with session.request(
                     method=method,
@@ -386,10 +393,19 @@ async def test_client():
         print(f"❌ Client test failed: {e}")
         return False
     finally:
+        # Assicurati che la sessione venga chiusa anche in caso di errore
         await client.close()
 
 
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(test_client())
+    # Usa un blocco try-finally per garantire la chiusura corretta
+    async def main():
+        try:
+            return await test_client()
+        finally:
+            # Assicurati che la sessione venga chiusa prima della chiusura del loop
+            await client.close()
+    
+    asyncio.run(main())
